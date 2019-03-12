@@ -12,6 +12,7 @@ trait Logging {
   def LOG_I1(m: Any): Unit = logger info mm(Seq(m))
   def LOG_W1(m: Any): Unit = logger warn mm(Seq(m))
   def LOG_E1(m: Any): Unit = logger error mm(Seq(m))
+  def LOG_EX(e: Throwable): Unit = logger error(e.getMessage, e)
 
   def LOG_D(m: Any*): Unit = logger debug mm(m)
   def LOG_I(m: Any*): Unit = logger info mm(m)

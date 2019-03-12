@@ -41,7 +41,7 @@ package object util extends Converters {
     }
   }
 
-  // -- PIMPs ----------------------------------------------------------------------------------------------------------
+  // -- PIMPs simple ---------------------------------------------------------------------------------------------------
 
   implicit class TernaryBoolean(condition: Boolean) {
     @inline final def ?[T](trueVal: =>T): JustTrue[T] =
@@ -61,5 +61,12 @@ package object util extends Converters {
     @inline final def average: BigDecimal = seq.foldLeft((BigDecimal(0.0), 1)) {
       case ((avg, idx), next) => (avg + (next - avg) / idx, idx + 1)
     }._1
+  }
+
+  // -- PIMPs collections ----------------------------------------------------------------------------------------------
+
+  implicit class SeqFuture[A](seq: Seq[Future[A]]) {
+    // decorator for Future.sequence(Seq(fut1, fut2, fut2, ...)) ::= Seq(fut1, fut2, fut2, ...).fut
+    @inline final def fut(implicit ex: ExecutionContext) = Future.sequence(seq)
   }
 }

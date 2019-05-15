@@ -4,28 +4,51 @@ import play.api.libs.json.{Json, Writes}
 import scala.concurrent.{ExecutionContext, Future}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpMethods, HttpRequest}
+import akka.http.scaladsl.model.headers.{Authorization, OAuth2BearerToken}
+import akka.http.scaladsl.model.{ContentTypes, FormData, HttpEntity, HttpMethods, HttpRequest, Multipart}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.Materializer
 
-class SlackClient(URL: String)(implicit as: ActorSystem, ec: ExecutionContext, mat: Materializer) {
+class SlackClient(webhook: String, token: String = "")(implicit as: ActorSystem, ec: ExecutionContext, mat: Materializer) {
   import SlackClient._
 
-  private val req = HttpRequest().withUri(URL).withMethod(HttpMethods.POST)
+  // == https://<WORKSPACE>.slack.com/apps/manage/custom-integrations ==================================================
+
+  private lazy val hookReq = HttpRequest().withUri(webhook).withMethod(HttpMethods.POST)
 
   def post(message: Message): Future[(Int, String)] = {
-    Http().singleRequest(req.withEntity(HttpEntity(ContentTypes.`application/json`, Json.toJson(message).toString()))) flatMap { resp =>
+    Http().singleRequest(hookReq.withEntity(HttpEntity(ContentTypes.`application/json`, Json.toJson(message).toString))) flatMap { resp =>
       Unmarshal(resp.entity).to[String] map { str => resp.status.intValue() -> str}
     }
   }
 
   def post(text: String, mrkdwn: Boolean = false, link_names: Boolean = false): Future[(Int, String)] =
     post(Message(text = Some(text), mrkdwn = mrkdwn, link_names = link_names))
-}
 
-// =====================================================================================================================
-// https://api.slack.com/docs/message-formatting
-// =====================================================================================================================
+  // == https://api.slack.com/custom-integrations/legacy-tokens ========================================================
+
+  private lazy val apiReq = HttpRequest().withHeaders(Authorization(OAuth2BearerToken(token))).withMethod(HttpMethods.POST)
+  private lazy val apiReqFileUpload = apiReq.withUri(s"https://slack.com/api/files.upload")
+
+  def api_call(method: String, args: (String, String)*): Future[(Int, String)] = {
+    Http().singleRequest(apiReq.withUri(s"https://slack.com/api/$method").withEntity(FormData(args.toMap).toEntity)) flatMap { resp =>
+      Unmarshal(resp.entity).to[String] map { str => resp.status.intValue() -> str}
+    }
+  }
+
+  def files_upload(file: Array[Byte], filename: String, channels: String, initial_comment: Option[String] = None, title: Option[String] = None): Future[(Int, String)] = {
+    import Multipart.FormData.BodyPart.{Strict => PART}
+    val parts = List(
+      PART("file", HttpEntity(file), Map("filename" -> filename)),
+      PART("channels", channels),
+    ) ++ initial_comment.map(PART("initial_comment", _)) ++ title.map(PART("title", _))
+    val multipart_formdata = Multipart.FormData(parts:_*)
+
+    Http().singleRequest(apiReqFileUpload.withEntity(multipart_formdata.toEntity)) flatMap { resp =>
+      Unmarshal(resp.entity).to[String] map { str => resp.status.intValue() -> str}
+    }
+  }
+}
 
 object SlackClient {
 
@@ -108,6 +131,7 @@ object SlackClient {
     mrkdwn_in: Seq[String] = Seq.empty // list of strings where to apply markdown: title/text/pretext/fields
   )
 
+  // https://api.slack.com/docs/message-formatting
   case class Message(
     text: Option[String] = None, // main message text
     username: Option[String] = None, // sender of message, default is WebHook name

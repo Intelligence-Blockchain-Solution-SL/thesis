@@ -7,17 +7,17 @@ package object util extends Converters {
 
   @inline final def NOW: Int = (System.currentTimeMillis() / 1000).toInt
 
+  @inline final def ifdef[A](cond: => Boolean)(mk: => A): Option[A] = {
+    if (cond) Some(mk) else None
+  }
+
+  @inline final def pro[T, S](obj: T)(op: T => S): S = {
+    op(obj)
+  }
+
   @inline final def con[T, S](obj: T)(op: T => S): T = {
     op(obj)
     obj
-  }
-
-  @inline final def ifdef[A](cond: => Boolean)(mk: => A): Option[A] = {
-    if (cond) {
-      Some(mk)
-    } else {
-      None
-    }
   }
 
   @inline final def using[T <: { def close(): Unit }, S](obj: T)(op: T => S): S = {
@@ -53,8 +53,17 @@ package object util extends Converters {
     }
   }
 
-  implicit class SeqEx[A](seq: Seq[A]) {
-    @inline final def takeRandomN(n: Int): Seq[A] = scala.util.Random.shuffle(seq).take(n)
+
+  // -- PIMPs collections ----------------------------------------------------------------------------------------------
+
+  implicit class SeqEx[T](seq: Seq[T]) {
+    @inline final def takeUntil(predicate: T => Boolean): Seq[T] = {
+      seq.span(predicate) match {
+        case (head, tail) => head ++ tail.take(1)
+      }
+    }
+    @inline final def takeRandomN(n: Int): Seq[T] =
+      scala.util.Random.shuffle(seq).take(n)
   }
 
   implicit class SeqBigDecimal[A](seq: Seq[BigDecimal]) {
@@ -63,10 +72,8 @@ package object util extends Converters {
     }._1
   }
 
-  // -- PIMPs collections ----------------------------------------------------------------------------------------------
-
   implicit class SeqFuture[A](seq: Seq[Future[A]]) {
     // decorator for Future.sequence(Seq(fut1, fut2, fut2, ...)) ::= Seq(fut1, fut2, fut2, ...).fut
-    @inline final def fut(implicit ex: ExecutionContext) = Future.sequence(seq)
+    @inline final def fut(implicit ex: ExecutionContext): Future[Seq[A]] = Future.sequence(seq)
   }
 }

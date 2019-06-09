@@ -37,6 +37,8 @@ trait Converters {
     @inline final def sha512_hex: String = sha512.hex
 
     @inline final def urlEncode: String = URLEncoder.encode(str, StandardCharsets.UTF_8)
+
+    @inline final def base64: Array[Byte] = Base64.getDecoder.decode(str)
   }
 
   @inline final def hex2string(hex: String): String = {
@@ -45,4 +47,7 @@ trait Converters {
     sb.toString
   }
 
+  implicit class RichOptional[T](opt: java.util.Optional[T]) {
+    @inline def asScala: Option[T] = if(opt.isPresent) Some(opt.get()) else None
+  }
 }

@@ -11,6 +11,12 @@ trait Converters {
 
   implicit class ByteArrayConverters(bytes: Array[Byte]) {
 
+    @inline private def _digest(algo: String) = MessageDigest.getInstance(algo).digest(bytes)
+
+    @inline final def md5: Array[Byte] = _digest("MD5")
+    @inline final def sha256: Array[Byte] = _digest("SHA-256")
+    @inline final def sha512: Array[Byte] = _digest("SHA-512")
+
     @inline final def hex: String = {
       val hexChars = new Array[Char](bytes.length * 2)
       bytes.indices foreach { j =>
@@ -22,6 +28,7 @@ trait Converters {
     }
 
     @inline final def base64: String = Base64.getEncoder.encodeToString(bytes)
+    @inline final def base64url: String = Base64.getUrlEncoder.withoutPadding().encodeToString(bytes)
   }
 
   implicit class StringConverters(str: String) {
@@ -39,6 +46,7 @@ trait Converters {
     @inline final def urlEncode: String = URLEncoder.encode(str, StandardCharsets.UTF_8)
 
     @inline final def base64: Array[Byte] = Base64.getDecoder.decode(str)
+    @inline final def base64url: Array[Byte] = Base64.getUrlDecoder.decode(str)
   }
 
   @inline final def hex2string(hex: String): String = {

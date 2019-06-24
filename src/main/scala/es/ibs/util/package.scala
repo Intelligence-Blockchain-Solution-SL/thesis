@@ -35,6 +35,18 @@ package object util extends Converters {
     block { (System.nanoTime() - t0) / 1000000000 }
   }
 
+  def timeDiff(interval: Long, delim: String = " "): String = {
+    val d = java.time.Duration.ofMillis(math.abs(interval))
+    val (dd, hh, mi, ss) = (d.toDaysPart, d.toHoursPart, d.toMinutesPart, d.toSecondsPart)
+    var f = false
+    var s = ""
+    if(dd > 0L) { s += s"${dd}d$delim"; f = true}
+    if(hh > 0 || f) { s += s"${hh}h$delim"; f = true}
+    if(mi > 0 || f) s += s"${mi}m$delim"
+    s += s"${ss}s"
+    if(interval < 0) "-" + s else s
+  }
+
   def sequentialExecution[A, B](seq: Seq[A])(f: A => Future[B])(implicit e: ExecutionContext): Future[Seq[B]] = {
     seq.foldLeft(Future.successful(Seq[B]())) { case (left, next) =>
       left.flatMap(res => f(next).map(x => res :+ x))

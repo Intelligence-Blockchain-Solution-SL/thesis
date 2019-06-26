@@ -47,6 +47,8 @@ package object util extends Converters {
     if(interval < 0) "-" + s else s
   }
 
+  def pctDiff(a: BigDecimal, b: BigDecimal): BigDecimal = (b - a) / a
+
   def sequentialExecution[A, B](seq: Seq[A])(f: A => Future[B])(implicit e: ExecutionContext): Future[Seq[B]] = {
     seq.foldLeft(Future.successful(Seq[B]())) { case (left, next) =>
       left.flatMap(res => f(next).map(x => res :+ x))

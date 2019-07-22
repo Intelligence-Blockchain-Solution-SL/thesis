@@ -9,6 +9,7 @@ private[pg] trait PgTypes {
   protected val PG_INT: Int = Types.INTEGER
   protected val PG_BIGINT: Int = Types.BIGINT
   protected val PG_NUMERIC: Int = Types.DECIMAL
+  protected val PG_BOOLEAN: Int = Types.BOOLEAN
 
   protected val PG_TEXT: Int = Types.VARCHAR
   protected val PG_UUID: Int = Types.OTHER

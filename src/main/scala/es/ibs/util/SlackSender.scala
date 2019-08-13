@@ -22,13 +22,16 @@ trait SlackSender extends Logging {
 
   private var slk: SlackClient = null
 
-  def send2slack (message: String): Future[Any] = {
-    if (slackChannel == null || slackChannel == "") return Future.unit
+  def send2slack(message: String): Future[Any] =
+    send2slack(slackChannel,slackIcon, slackSender, message)
+
+  def send2slack(channel: String, icon: Option[String], sender: String, message: String): Future[Any] = {
+    if (channel == null || channel == "") return Future.unit
     if (slk == null) slk = new SlackClient(slackChannel)
     val msg = SlackClient.Message(
       mrkdwn = false,
-      username = Some(slackSender),
-      icon_emoji = slackIcon,
+      username = Some(sender),
+      icon_emoji = icon,
       text = Some(message)
     )
     slk.post(msg).recover {
@@ -37,10 +40,13 @@ trait SlackSender extends Logging {
     }
   }
 
-  def send2slack (messages: Seq[String]): Future[Any] = {
+  def send2slack(messages: Seq[String]): Future[Any] =
+    send2slack(slackChannel,slackIcon, slackSender, messages)
+
+  def send2slack(channel: String, icon: Option[String], sender: String, messages: Seq[String]): Future[Any] = {
     if (messages.isEmpty) return Future.unit
-    if (slackChannel == null || slackChannel == "") return Future.unit
-    if (slk == null) slk = new SlackClient(slackChannel)
+    if (channel == null || channel == "") return Future.unit
+    if (slk == null) slk = new SlackClient(channel)
 
     val bigMessage = new StringBuilder
 
@@ -61,7 +67,8 @@ trait SlackSender extends Logging {
 
     val tail = appendMsgs(messages)
     LOG_D(s"Sender processed ${messages.size - tail.size} messages in a batch. Remaining messages: ${tail.size}")
-    send2slack(bigMessage.mkString).flatMap { _ => after(batchDelay, system.scheduler)(send2slack(tail)) }
+    send2slack(channel,icon,sender,bigMessage.mkString).flatMap { _ =>
+      after(batchDelay, system.scheduler)(send2slack(channel,icon,sender,tail)) }
   }
 }
 

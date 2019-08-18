@@ -31,10 +31,6 @@ trait PgDriver extends PgTypes {
 
   protected val dataSource: HikariDataSource
 
-  // ORDER BY clause
-  //  ex.: Ordering(Seq(1, 2, -3), 10, 100) == ORDER BY 1, 2, 3 DESC LIMIT 10 OFFSET 100
-  case class Ordering(orderBy: Seq[Int] = Seq.empty, limit: Int = 0, offset: Int = 0)
-
   // universal parameters processor for any statement type (offs is for func only)
   private final def Parametrize(db: Connection, ps: PreparedStatement, p: Seq[Product], offs: Int = 1) {
     offs until p.size + offs foreach { i =>
@@ -92,7 +88,7 @@ trait PgDriver extends PgTypes {
   }
 
   // INSERT / UPDATE / DELETE
-  final def dml(stmt: String, params: Seq[Product] = Seq.empty): Int = {
+  final def dml(stmt: String, params: Product*): Int = {
     using(dataSource.getConnection) { db =>
       using(db.prepareStatement(stmt)) { ps =>
         Parametrize(db, ps, params)
@@ -102,19 +98,10 @@ trait PgDriver extends PgTypes {
   }
 
   // SELECT / INSERT+returning private base (warning! Iterator is not iterating here, so wrappers required)
-  private final def queryImpl[A, B](q: String, p: Seq[Product], o: Ordering = Ordering())
-                                   (row: ResultSet => A)
-                                   (fetch: Iterator[A] => B) = {
-    // format ordering
-    val ord = if (o.orderBy == Seq.empty) ""
-    else // orderBy should be declared to use limit/offset
-      " order by " + o.orderBy.map(col => if (col > 0) col.toString else (-col).toString + " desc").mkString(",") +
-        (if (o.limit == 0) "" else s" limit ${o.limit}") +
-        (if (o.offset == 0) "" else s" offset ${o.offset}")
-
+  private final def queryImpl[A, B](q: String, p: Seq[Product])(row: ResultSet => A)(fetch: Iterator[A] => B) = {
     // prepare/execute (workaround ==> .asInstanceOf[HikariProxyResultSet].unwrap[PgResultSet])
     using(dataSource.getConnection) { db =>
-      using(db.prepareStatement(q + ord)) { s =>
+      using(db.prepareStatement(q)) { s =>
         Parametrize(db, s, p)
         using(s.executeQuery()) { rs =>
           // postprocessing data, generating result
@@ -128,34 +115,24 @@ trait PgDriver extends PgTypes {
   }
 
   // INSERT+returning helpers
-  final def insertRetOne[A](ins: String, params: Seq[Product] = Seq.empty)(r: ResultSet => A): A = {
-    selectOne(ins, params)(r) // strictly fetch only one value
-  }
+  final def insertRetOne[A](ins: String, params: Product*)(r: ResultSet => A): A =
+    selectOne(ins, params:_*)(r) // strictly fetch only one value
 
-  final def insertRetList[A](ins: String, params: Seq[Product] = Seq.empty)(r: ResultSet => A): List[A] = {
-    select(ins, params)(r)
-  }
+  final def insertRetList[A](ins: String, params: Product*)(r: ResultSet => A): List[A] =
+    select(ins, params:_*)(r)
 
   // SELECT helpers
-  final def select[A](query: String, params: Seq[Product] = Seq.empty, ordering: Ordering = Ordering())
-                               (r: ResultSet => A): List[A] = {
-    queryImpl(query, params, ordering)(r)(_.toList)
-  }
+  final def select[A](query: String, params: Product*)(r: ResultSet => A): List[A] =
+    queryImpl(query, params)(r)(_.toList)
 
-  final def selectMap[A, B](query: String, params: Seq[Product] = Seq.empty, ordering: Ordering = Ordering())
-                                     (r: ResultSet => (A, B)): Map[A, B] = {
-    queryImpl(query, params, ordering)(r)(_.toMap)
-  }
+  final def selectMap[A, B](query: String, params: Product*)(r: ResultSet => (A, B)): Map[A, B] =
+    queryImpl(query, params)(r)(_.toMap)
 
-  final def selectOne[A](query: String, params: Seq[Product] = Seq.empty)
-                                  (r: ResultSet => A): A = {
+  final def selectOne[A](query: String, params: Product*)(r: ResultSet => A): A =
     queryImpl(query, params)(r)(f => { if (!f.hasNext) throw PgNoDataFoundException else f.next() }) // strictly fetch only one value
-  }
 
-  final def selectOneOption[A](query: String, params: Seq[Product] = Seq.empty)
-                                        (r: ResultSet => A): Option[A] = {
+  final def selectOneOption[A](query: String, params: Product*)(r: ResultSet => A): Option[A] =
     queryImpl(query, params)(r)(f => { if (f.hasNext) Some(f.next()) else None }) // strictly fetch only one value
-  }
 
   // several useful routines
 
@@ -168,7 +145,6 @@ trait PgDriver extends PgTypes {
   final def getMetaData: DatabaseMetaData = using(dataSource.getConnection)(_.getMetaData)
 
   final def dbNow: Date = dbCall[java.util.Date]("now", r = PG_TIMESTAMP)
-
 }
 
 object PgDriver {
@@ -176,7 +152,7 @@ object PgDriver {
   SLF4JBridgeHandler.install()
 
   def dataSourceFromProperties(properties: Properties) = new HikariDataSource(new HikariConfig(properties))
-  def apply(properties: Properties): PgDriver = new PgDriver { val dataSource = dataSourceFromProperties(properties) }
+  def apply(properties: Properties): PgDriver = new PgDriver { val dataSource: HikariDataSource = dataSourceFromProperties(properties) }
 
   def dataSourceFromParams(jdbcUrl: String, username: String, password: String, poolSize: Int = 1, props: Map[String, Any] = Map.empty): HikariDataSource = {
     new HikariDataSource(con(new HikariConfig()) { cfg =>
@@ -188,5 +164,5 @@ object PgDriver {
     })
   }
   def apply(jdbcUrl: String, username: String, password: String, poolSize: Int = 1, props: Map[String, Any] = Map("sslmode" -> "required")): PgDriver =
-    new PgDriver { val dataSource = dataSourceFromParams(jdbcUrl, username, password, poolSize, props) }
+    new PgDriver { val dataSource: HikariDataSource = dataSourceFromParams(jdbcUrl, username, password, poolSize, props) }
 }

@@ -3,7 +3,7 @@ package es.ibs.util
 import java.util.Properties
 import java.util.concurrent.TimeUnit
 import scala.collection.mutable
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.language.implicitConversions
 import com.typesafe.config.{Config, ConfigObject, ConfigValue, ConfigValueType}
 
@@ -24,6 +24,9 @@ class ConfigEx(val c: Config) extends AnyVal {
 
   def getDurationOrElse(path: String, default: => Duration): Duration =
     if(c.hasPath(path)) Duration(c.getDuration(path, TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS) else default
+
+  def getFDuration(path: String): FiniteDuration =
+    Duration.fromNanos(c.getDuration(path).toNanos)
 
   def getMap[A](path: String): Map[String, A] = {
     val list = c.getObjectList(path).asScala

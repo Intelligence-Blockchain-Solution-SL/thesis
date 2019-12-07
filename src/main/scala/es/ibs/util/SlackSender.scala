@@ -72,7 +72,7 @@ trait SlackSender extends Logging {
       after(batchDelay, system.scheduler)(send2slack(channel,icon,sender,tail)) }
   }
 
-  def post(webhook: String, message: Message): Future[(Int, String)] = {
+  private def post(webhook: String, message: Message): Future[(Int, String)] = {
     val hookReq = HttpRequest().withUri(webhook).withMethod(HttpMethods.POST)
     Http().singleRequest(hookReq.withEntity(HttpEntity(ContentTypes.`application/json`, Json.toJson(message).toString))) flatMap { resp =>
       Unmarshal(resp.entity).to[String] map { str => resp.status.intValue() -> str}

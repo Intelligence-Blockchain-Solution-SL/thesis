@@ -41,4 +41,13 @@ class XLSXRowWrapper(row: XSSFRow, private val wb: XLSXWorkbook) {
     c.setCellType(CellType.NUMERIC)
   }
 
+  def apply(d: Option[Date], time: Boolean): Unit =
+    if (d.isEmpty) apply("") else apply(d.get,time)
+
+  def apply(bd: Option[BigDecimal], decimal: Int): Unit =
+    if (bd.isEmpty) apply("") else apply(bd.get,decimal)
+
+  def apply(l: Option[Long]): Unit =
+    if (l.isDefined) apply(l.get) else apply("")
+
 }

@@ -22,7 +22,9 @@ class XLSXSheetWrapper(val sh: XSSFSheet, private val wb: XLSXWorkbook) {
 
   def appendRow: XLSXRowWrapper = new XLSXRowWrapper(sh.createRow((sh.getPhysicalNumberOfRows == 0) ? 0 | sh.getLastRowNum + 1), wb)
 
-  def setAutoFilter(): XSSFAutoFilter = sh.setAutoFilter(new CellRangeAddress(0, sh.getLastRowNum-1, 0, sh.getRow(0).getLastCellNum-1))
+  def setAutoFilter(): XSSFAutoFilter =
+      sh.setAutoFilter(new CellRangeAddress(0, Math.max(sh.getLastRowNum - 1,0),
+        0, sh.getRow(0).getLastCellNum-1))
 
   def autoSizeColumns(): Unit = 0 to sh.getRow(0).getLastCellNum foreach sh.autoSizeColumn
 }

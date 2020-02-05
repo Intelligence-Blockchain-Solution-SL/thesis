@@ -1,10 +1,10 @@
 package es.ibs.util.xlsx
 
-import org.apache.poi.ss.usermodel.HorizontalAlignment
-import org.apache.poi.xssf.usermodel.{XSSFCellStyle, XSSFCreationHelper, XSSFDataFormat, XSSFWorkbook}
+import org.apache.poi.ss.usermodel.{FillPatternType, HorizontalAlignment}
+import org.apache.poi.xssf.usermodel.{XSSFCreationHelper, XSSFDataFormat, XSSFWorkbook}
 import es.ibs.util.{con, using}
 
-class XLSXWorkbook extends XSSFWorkbook{
+class XLSXWorkbook extends XSSFWorkbook {
 
   import org.apache.poi.ss.usermodel.Font
   import org.apache.poi.ss.usermodel.IndexedColors
@@ -18,7 +18,7 @@ class XLSXWorkbook extends XSSFWorkbook{
 
   lazy private val textDataFmt: Short = format.getFormat("@")
   lazy private val dateDataFmt: Short = format.getFormat("yyyy-mm-dd")
-  lazy private val dateToMinDataFmt: Short  = format.getFormat("yyyy-mm-dd hh:mm")
+  lazy private val dateToMinDataFmt: Short = format.getFormat("yyyy-mm-dd hh:mm")
   lazy private val longDataFmt: Short = format.getFormat("0") // will use builtin
   lazy private val bigDecimalDataFormat: IndexedSeq[Short] = IndexedSeq(
     format.getFormat("0"),
@@ -29,24 +29,46 @@ class XLSXWorkbook extends XSSFWorkbook{
     format.getFormat("0.00000")
   )
 
-  lazy val textCellStyle: XSSFCellStyle = con(this.createCellStyle())(_.setDataFormat(textDataFmt))
-  lazy val dateCellStyle: XSSFCellStyle = con(this.createCellStyle())(_.setDataFormat(dateDataFmt))
-  lazy val dateToMinCellStyle: XSSFCellStyle = con(this.createCellStyle())(_.setDataFormat(dateToMinDataFmt))
-  lazy val longCellStyle: XSSFCellStyle = con(this.createCellStyle())(_.setDataFormat(longDataFmt))
-  lazy val bigDecimalDataStyle: IndexedSeq[XSSFCellStyle] = bigDecimalDataFormat.map(f => con(this.createCellStyle())(_.setDataFormat(f)))
+  val self = this
 
-  lazy val hrefCellStyle: XSSFCellStyle = con(this.createCellStyle) { cs =>
-    cs.setDataFormat(textDataFmt)
-    cs.setFont(con(this.createFont) { f => f.setUnderline(Font.U_SINGLE); f.setColor(IndexedColors.BLUE.getIndex) })
+  lazy val regularRowStyle = new RowStyleSet {
+    override lazy val textCellStyle = con(self.createCellStyle())(_.setDataFormat(textDataFmt))
+    override lazy val dateCellStyle = con(self.createCellStyle())(_.setDataFormat(dateDataFmt))
+    override lazy val dateToMinCellStyle = con(self.createCellStyle())(_.setDataFormat(dateToMinDataFmt))
+    override lazy val longCellStyle = con(self.createCellStyle())(_.setDataFormat(longDataFmt))
+    override lazy val bigDecimalDataStyle = bigDecimalDataFormat.map(f => con(self.createCellStyle())(_.setDataFormat(f)))
+    override lazy val hrefCellStyle = con(self.createCellStyle) { cs =>
+      cs.setDataFormat(textDataFmt)
+      cs.setFont(con(self.createFont) { f => f.setUnderline(Font.U_SINGLE); f.setColor(IndexedColors.BLUE.getIndex) })
+    }
+    override lazy val headerTextStyle = con(self.createCellStyle) { cs =>
+      cs.setAlignment(HorizontalAlignment.CENTER)
+      cs.setDataFormat(textDataFmt)
+      cs.setFont(con(self.createFont)(_.setBold(true)))
+    }
   }
 
-  lazy val headerTextStyle: XSSFCellStyle = con(this.createCellStyle) { cs =>
-    cs.setAlignment(HorizontalAlignment.CENTER)
-    cs.setDataFormat(textDataFmt)
-    cs.setFont(con(this.createFont)(_.setBold(true)))
+  private val highlightedColor1 = IndexedColors.LIGHT_YELLOW.getIndex
+
+  lazy val highlighted1RowStyle = new RowStyleSet {
+    override lazy val textCellStyle =
+      con(self.createCellStyle()) { s => s.cloneStyleFrom(regularRowStyle.textCellStyle); s.setFillForegroundColor(highlightedColor1); s.setFillPattern(FillPatternType.SOLID_FOREGROUND) }
+    override lazy val dateCellStyle =
+      con(self.createCellStyle()) { s => s.cloneStyleFrom(regularRowStyle.dateCellStyle); s.setFillForegroundColor(highlightedColor1); s.setFillPattern(FillPatternType.SOLID_FOREGROUND) }
+    override lazy val dateToMinCellStyle =
+      con(self.createCellStyle()) { s => s.cloneStyleFrom(regularRowStyle.dateToMinCellStyle); s.setFillForegroundColor(highlightedColor1); s.setFillPattern(FillPatternType.SOLID_FOREGROUND) }
+    override lazy val longCellStyle =
+      con(self.createCellStyle()) { s => s.cloneStyleFrom(regularRowStyle.longCellStyle); s.setFillForegroundColor(highlightedColor1); s.setFillPattern(FillPatternType.SOLID_FOREGROUND) }
+    override lazy val bigDecimalDataStyle = bigDecimalDataFormat.indices.map(i =>
+      con(self.createCellStyle()) { s => s.cloneStyleFrom(regularRowStyle.bigDecimalDataStyle(i)); s.setFillForegroundColor(highlightedColor1); s.setFillPattern(FillPatternType.SOLID_FOREGROUND) })
+    override lazy val hrefCellStyle =
+      con(self.createCellStyle()) { s => s.cloneStyleFrom(regularRowStyle.hrefCellStyle); s.setFillForegroundColor(highlightedColor1); s.setFillPattern(FillPatternType.SOLID_FOREGROUND) }
+    override lazy val headerTextStyle =
+      con(self.createCellStyle()) { s => s.cloneStyleFrom(regularRowStyle.headerTextStyle); s.setFillForegroundColor(highlightedColor1); s.setFillPattern(FillPatternType.SOLID_FOREGROUND) }
   }
 
-  def writeToFile(filename: String ): Unit = {
+
+  def writeToFile(filename: String): Unit = {
     import java.io.FileOutputStream
     using(new FileOutputStream(filename))(this.write(_))
   }

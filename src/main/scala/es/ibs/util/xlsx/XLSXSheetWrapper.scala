@@ -8,7 +8,7 @@ class XLSXSheetWrapper(val sh: XSSFSheet, private val wb: XLSXWorkbook) {
 
   def setHeaderCaptions(captions: String*): Unit = {
     val r = appendRow
-    captions foreach { cs => r._cell { c => c.setCellStyle(wb.headerTextStyle); c.setCellValue(cs) } }
+    captions foreach { cs => r._cell { c => c.setCellStyle(wb.regularRowStyle.headerTextStyle); c.setCellValue(cs) } }
   }
 
   def setWidths(widths: Int*): Unit = {
@@ -20,7 +20,10 @@ class XLSXSheetWrapper(val sh: XSSFSheet, private val wb: XLSXWorkbook) {
     setWidths(captions.map(_._2):_*)
   }
 
-  def appendRow: XLSXRowWrapper = new XLSXRowWrapper(sh.createRow((sh.getPhysicalNumberOfRows == 0) ? 0 | sh.getLastRowNum + 1), wb)
+  def appendRow: XLSXRowWrapper = new XLSXRowWrapper(sh.createRow((sh.getPhysicalNumberOfRows == 0) ? 0 | sh.getLastRowNum + 1), wb, wb.regularRowStyle)
+
+  def appendRow(ds: RowStyleSet): XLSXRowWrapper = new XLSXRowWrapper(sh.createRow((sh.getPhysicalNumberOfRows == 0) ? 0 | sh.getLastRowNum + 1), wb, ds)
+
 
   def setAutoFilter(): XSSFAutoFilter =
       sh.setAutoFilter(new CellRangeAddress(0, Math.max(sh.getLastRowNum - 1,0),

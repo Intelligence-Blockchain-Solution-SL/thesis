@@ -90,4 +90,13 @@ package object util extends Converters {
     // decorator for Future.sequence(Seq(fut1, fut2, fut2, ...)) ::= Seq(fut1, fut2, fut2, ...).fut
     @inline final def fut(implicit ex: ExecutionContext): Future[Seq[A]] = Future.sequence(seq)
   }
+
+  implicit class OptionCollectionFunction[T](collection: Iterable[T]) {
+    @inline final def minByOption[C](f: T => C)(implicit cmp: Ordering[C]): Option[T] =
+      if (collection.isEmpty) None else Some(collection.minBy(f))
+
+    @inline final def maxByOption[C](f: T => C)(implicit cmp: Ordering[C]): Option[T] =
+      if (collection.isEmpty) None else Some(collection.maxBy(f))
+
+  }
 }

@@ -103,10 +103,13 @@ object SlackClient {
 
   case class AttachmentAction(
     text: String,
-    url: String,
+    url: Option[String] = None,
     style: Option[String] = style_primary,
     confirm: Option[AttachmentActionConfirm] = None,
-    `type`: String = "button"
+    `type`: String = "button",
+    name: Option[String] = None,
+    value: Option[String] = None
+
   )
 
   // class fields order represents real attachment sections order
@@ -117,6 +120,8 @@ object SlackClient {
     author_name: Option[String] = None, // gray author name before title
     author_link: Option[String] = None, // makes author clickable
     author_icon: Option[String] = None, // author pic
+    attachment_type: Option[String] = None,
+    callback_id: Option[String] = None,
     title: Option[String] = None, // bold title of attachment
     title_link: Option[String] = None, // make title clickable
     text: Option[String] = None, // attachment text
@@ -139,7 +144,8 @@ object SlackClient {
     mrkdwn: Boolean = false, // apply or not Slack markdown to text
     parse: String = "none", // full/none parse of incoming message (full also implicits link_names=1)
     link_names: Boolean = false, // treat @<name> and #<name> as link to user/group (false = disable)
-    attachments: Seq[Attachment] = Seq.empty
+    attachments: Seq[Attachment] = Seq.empty,
+    replace_original: Option[Boolean] = Some(false) //use in slack interactive responses
   )
 
   // generic response

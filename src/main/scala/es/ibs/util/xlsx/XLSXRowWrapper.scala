@@ -30,7 +30,7 @@ class XLSXRowWrapper(row: XSSFRow, private val wb: XLSXWorkbook, private val ds:
   }
 
   def apply(bd: BigDecimal, decimal: Int): Unit = _cell { c =>
-    c.setCellValue(bd.doubleValue())
+    c.setCellValue(bd.doubleValue)
     c.setCellStyle(ds.bigDecimalDataStyle(decimal))
     c.setCellType(CellType.NUMERIC)
   }

@@ -2,7 +2,6 @@ package es.ibs.util
 
 import scala.concurrent.ExecutionContextExecutor
 import akka.actor.{Actor, ActorSystem}
-import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
@@ -16,7 +15,6 @@ trait ActorBase extends Actor with Logging {
   var info: String = "" // additional actor info
 
   implicit val system: ActorSystem = context.system
-  implicit val mat: ActorMaterializer = ActorMaterializer()
   implicit val ec: ExecutionContextExecutor = context.dispatcher
   implicit val timeout: Timeout = Timeout(10.seconds)
 

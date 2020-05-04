@@ -32,7 +32,7 @@ trait PgDriver extends PgTypes {
   protected val dataSource: HikariDataSource
 
   // universal parameters processor for any statement type (offs is for func only)
-  private final def Parametrize(db: Connection, ps: PreparedStatement, p: Seq[Product], offs: Int = 1) {
+  private final def Parametrize(db: Connection, ps: PreparedStatement, p: Seq[Product], offs: Int = 1): Unit = {
     offs until p.size + offs foreach { i =>
       p(i - offs) match {
         // jsonb

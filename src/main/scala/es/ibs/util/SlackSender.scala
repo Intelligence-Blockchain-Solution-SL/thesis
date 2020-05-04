@@ -8,7 +8,6 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpMethods, HttpRequest}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.pattern.after
-import akka.stream.ActorMaterializer
 import play.api.libs.json.Json
 import es.ibs.util.SlackClient.Message
 
@@ -19,7 +18,6 @@ trait SlackSender extends Logging {
   protected val slackIcon: Option[String]
 
   implicit val system: ActorSystem
-  implicit val mat: ActorMaterializer
   implicit val ec: ExecutionContext
 
   private val maxMsgLength = 39000 //According doc limit for message is 40000, but we book some for internal error message
@@ -38,7 +36,7 @@ trait SlackSender extends Logging {
     )
     post(channel, msg).recover {
       case err: Exception =>
-        LOG_E(err,"Unable to send notification to slack")
+        LOG_E(err, "Unable to send notification to slack")
     }
   }
 

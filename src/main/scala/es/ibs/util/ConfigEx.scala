@@ -40,7 +40,7 @@ class ConfigEx(val c: Config) extends AnyVal {
 
   def getMapOrElse[A](path: String, default: => Map[String, A]): Map[String, A] = if(c.hasPath(path)) c.getMap(path) else default
 
-  def getSeq[A](path: String): Seq[A] = c.getList(path).unwrapped().asScala.map(_.asInstanceOf[A])
+  def getSeq[A](path: String): Seq[A] = c.getList(path).unwrapped().asScala.map(_.asInstanceOf[A]).toSeq
 
   def getSeqOrElse[A](path: String, default: => Seq[A]): Seq[A] = if(c.hasPath(path)) c.getSeq(path) else default
 
